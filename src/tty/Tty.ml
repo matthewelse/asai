@@ -141,6 +141,7 @@ sig
       block_splitting_threshold : int;
       tab_size : int;
       ansi : Ansi.param;
+      override_source : Range.source option
     }
 
   val render_diagnostic : param:param -> Format.formatter -> string Diagnostic.t -> unit
@@ -154,6 +155,7 @@ struct
       block_splitting_threshold : int;
       tab_size : int;
       ansi : Ansi.param;
+      override_source : Range.source option
     }
 
   let line_number_width explication : int =
@@ -177,7 +179,7 @@ struct
         (main :: extra_remarks)
     in
     let explication =
-      E.explicate ~block_splitting_threshold:param.block_splitting_threshold ~debug:param.debug located_tags
+      E.explicate ~block_splitting_threshold:param.block_splitting_threshold ~debug:param.debug ?override_source:param.override_source located_tags
     in
     let line_number_width = line_number_width explication in
     let param = {ExplicationRenderer.severity = severity; tab_size = param.tab_size; line_number_width; ansi = param.ansi} in
@@ -197,11 +199,11 @@ end
 module Make (Message : MinimumSigs.Message) =
 struct
   let display ?(output=Stdlib.stdout) ?use_ansi ?use_color ?(show_backtrace=true)
-      ?(line_breaks=`Traditional) ?(block_splitting_threshold=5) ?(tab_size=8) ?(debug=false) d =
+      ?(line_breaks=`Traditional) ?(block_splitting_threshold=5) ?(tab_size=8) ?(debug=false) ?override_source d =
     let d = if show_backtrace then d else {d with Diagnostic.backtrace = Emp} in
     let d = Diagnostic.map Message.short_code d in
     let ansi = Ansi.Test.guess ?use_ansi ?use_color output in
-    let param = {DiagnosticRenderer.debug; line_breaks; block_splitting_threshold; tab_size; ansi} in
+    let param = {DiagnosticRenderer.debug; line_breaks; block_splitting_threshold; tab_size; ansi; override_source} in
     let fmt = Format.formatter_of_out_channel output in
     SourceReader.run @@ fun () ->
     DiagnosticRenderer.render_diagnostic ~param fmt d;

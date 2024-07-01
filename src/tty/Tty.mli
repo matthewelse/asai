@@ -35,5 +35,5 @@ module Make (Message : MinimumSigs.Message) : sig
 
       @see <https://no-color.org/> for the [NO_COLOR] specification
   *)
-  val display : ?output:out_channel -> ?use_ansi:bool -> ?use_color:bool -> ?show_backtrace:bool -> ?line_breaks:[`Unicode | `Traditional] -> ?block_splitting_threshold:int -> ?tab_size:int -> ?debug:bool -> Message.t Diagnostic.t -> unit
+  val display : ?output:out_channel -> ?use_ansi:bool -> ?use_color:bool -> ?show_backtrace:bool -> ?line_breaks:[`Unicode | `Traditional] -> ?block_splitting_threshold:int -> ?tab_size:int -> ?debug:bool -> ?override_source:Range.source -> Message.t Diagnostic.t -> unit
 end

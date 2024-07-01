@@ -76,11 +76,11 @@ module Make (Tag : Tag) = struct
 
   module F = Flattener.Make(Tag)
 
-  let explicate_block ~line_breaks (b : Tag.t Flattener.block) : Tag.t block =
+  let explicate_block ~override_source ~line_breaks (b : Tag.t Flattener.block) : Tag.t block =
     match b.tagged_positions with
     | [] -> invalid_arg "explicate_block: empty block"
     | ((_, ploc) :: _) as ps ->
-      let source = SourceReader.load ploc.source in
+      let source = SourceReader.load (Option.value override_source ~default:ploc.source) in
       let eof = SourceReader.length source in
       let find_eol i = UserContent.find_eol ~line_breaks (SourceReader.unsafe_get source) (i, eof) in
       let rec go state : (Tag.t option * Range.position) list -> _ =
@@ -158,15 +158,15 @@ module Make (Tag : Tag) = struct
       ; lines = Bwd.to_list @@ lines
       }
 
-  let[@inline] explicate_blocks ~line_breaks = List.map (explicate_block ~line_breaks)
+  let[@inline] explicate_blocks ~override_source ~line_breaks = List.map (explicate_block ~override_source ~line_breaks)
 
-  let[@inline] explicate_part ~line_breaks (source, bs) : Tag.t part =
-    { source; blocks = explicate_blocks ~line_breaks bs }
+  let[@inline] explicate_part ~override_source ~line_breaks (source, bs) : Tag.t part =
+    { source; blocks = explicate_blocks ~override_source ~line_breaks bs }
 
-  let check_ranges ~line_breaks ranges =
+  let check_ranges ~override_source ~line_breaks ranges =
     List.iter
       (fun (_, range) ->
-         let source = SourceReader.load @@ Range.source range in
+         let source = SourceReader.load @@ (Option.value ~default:(Range.source range) override_source) in
          let read = SourceReader.unsafe_get source in
          let eof = SourceReader.length source in
          try UserContent.check_range ~line_breaks ~eof read range
@@ -174,7 +174,7 @@ module Make (Tag : Tag) = struct
       ranges
 
   let explicate ?(line_breaks=`Traditional) ?(block_splitting_threshold=5)
-      ?(blend=default_blend ~priority:Tag.priority) ?(debug=false) ranges =
-    if debug then check_ranges ~line_breaks ranges;
-    List.map (explicate_part ~line_breaks) @@ F.flatten ~block_splitting_threshold ~blend ranges
+      ?(blend=default_blend ~priority:Tag.priority) ?(debug=false) ?override_source ranges =
+    if debug then check_ranges ~override_source ~line_breaks ranges;
+    List.map (explicate_part ~override_source ~line_breaks) @@ F.flatten ~block_splitting_threshold ~blend ranges
 end
